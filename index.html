@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAIR PROFILE MAKER</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* ───────────── 페이지(편집 UI) ───────────── */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:#E9EBEF;color:#16181D;
+  font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.app-head{max-width:1152px;margin:0 auto;padding:28px 16px 14px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.app-head h1{margin:0;font-size:20px;font-weight:900;letter-spacing:-.03em}
+.app-head h1 small{display:block;font-size:11px;font-weight:600;letter-spacing:.22em;color:#8A90A0;margin-bottom:4px}
+.app-head p{margin:0;font-size:12.5px;color:#6B7182;line-height:1.6}
+
+.toolbar{position:sticky;top:0;z-index:50;max-width:1152px;margin:0 auto 18px;padding:10px 16px}
+.toolbar-in{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(12px);
+  border:1px solid #DDE0E6;border-radius:14px;padding:8px;
+  box-shadow:0 8px 24px rgba(20,24,35,.06);
+}
+.grp{display:flex;gap:4px;align-items:center;padding-right:8px;border-right:1px solid #E6E8EC}
+.grp:last-child{border-right:0;margin-left:auto;padding-right:0}
+.tb{
+  appearance:none;border:1px solid transparent;background:#F3F4F7;color:#16181D;
+  height:34px;padding:0 12px;border-radius:9px;font:600 13px 'Pretendard',sans-serif;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.tb:hover{background:#E8EAEF}
+.tb.sq{width:34px;padding:0;justify-content:center;font-size:15px}
+.tb.primary{background:#121212;color:#fff}
+.tb.primary:hover{background:#333}
+.tb:disabled{opacity:.6;cursor:wait}
+
+.stage-wrap{display:flex;justify-content:center;padding:0 16px 60px}
+.stage{position:relative}
+.hidden-input{position:fixed;left:-200px;top:0;width:40px;height:40px;opacity:0;pointer-events:none}
+.toast{
+  position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+  background:#16181D;color:#fff;font:600 13px 'Pretendard',sans-serif;padding:11px 18px;border-radius:999px;
+  opacity:0;transition:.25s;pointer-events:none;z-index:99
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ───────────── 카드 ───────────── */
+.card{
+  --sans:'Pretendard',-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  --bg:#FFFFFF;--paper:#FFFFFF;--panel:#E8E6E0;--ink:#121212;--ink2:#3A3A3A;--sub:#9A978F;
+  --frame:#141414;--screen:#fff;--s-ink:#000;--s-sub:#8E8E93;--s-line:#E5E5EA;
+  --in:#E9E9EB;--in-ink:#000;--out:#0A84FF;--ios-blue:#0A84FF;
+  position:absolute;left:0;top:0;transform-origin:0 0;
+  width:1120px;padding:44px 44px 0;
+  background:var(--bg);color:var(--ink);font-family:var(--sans);
+  overflow:hidden;
+}
+.card [contenteditable]{outline:none;cursor:text;border-radius:3px}
+.card [contenteditable]:focus{box-shadow:0 0 0 2px rgba(21,146,255,.45)}
+.card [data-ph]:empty::before{content:attr(data-ph);color:var(--sub)}
+.card.exporting [contenteditable]:focus{box-shadow:none}
+.card.exporting [data-ph]:empty::before{content:none}
+.card.exporting .del,.card.exporting .ph-del,.card.exporting .ph-empty{display:none!important}
+
+.top{display:grid;grid-template-columns:300px minmax(0,1fr);gap:24px;height:400px}
+.right{display:flex;flex-direction:column;gap:16px;min-width:0;min-height:0}
+
+/* 대표사진 3:4 */
+.photo{position:relative;overflow:hidden;background:var(--panel);height:400px;border:1.5px solid var(--ink);user-select:none}
+.ph-img{position:absolute;max-width:none;max-height:none;cursor:grab;touch-action:none;-webkit-user-drag:none;user-select:none}
+.ph-img.grab{cursor:grabbing}
+.ph-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--sub);text-align:center;cursor:pointer}
+.ph-empty .ph-ico{width:46px;height:46px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:300;margin-bottom:6px}
+.ph-empty b{font-size:13.5px;font-weight:700;color:var(--ink2)}
+.ph-empty span{font-size:11.5px}
+.photo.has .ph-empty{display:none}
+.ph-del{
+  position:absolute;right:12px;top:12px;z-index:3;border:0;cursor:pointer;
+  background:rgba(15,15,18,.72);color:#fff;font:600 12px var(--sans);padding:7px 11px;border-radius:999px;
+  opacity:0;transition:.2s
+}
+.photo:not(.has) .ph-del{display:none}
+.photo:hover .ph-del{opacity:1}
+
+/* 페어 타이틀 */
+.title-box{
+  height:130px;flex:none;display:flex;align-items:center;min-width:0;overflow:hidden;
+  border-top:6px solid var(--ink);border-bottom:1px solid var(--ink);padding:0 2px
+}
+.pair-title{margin:0;width:100%;font-weight:900;font-size:58px;line-height:1.1;letter-spacing:-.04em;white-space:nowrap;overflow:hidden}
+
+/* 캐릭터 설명 1:1 */
+.chars{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:var(--paper);border:1.5px solid var(--ink)}
+.char{flex:1 1 0;min-height:0;display:flex}
+.char + .char{border-top:1px solid var(--ink)}
+.chip{width:14px;flex:none;cursor:pointer;border-right:1.5px solid var(--ink)}
+.chip:hover{filter:brightness(1.08)}
+.char-body{flex:1;min-width:0;padding:16px 24px;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.char-head{display:flex;align-items:baseline;gap:10px;min-width:0}
+.name{font-size:21px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.meta{font-size:12.5px;color:var(--sub);white-space:nowrap}
+.desc{font-size:14px;line-height:1.7;color:var(--ink2);overflow:hidden}
+
+/* 하단 */
+.bottom{display:grid;grid-template-columns:360px minmax(0,1fr);gap:24px;height:620px;margin-top:28px}
+
+/* 휴대폰 – 박스 없이, 카드 아래 끝에서 잘림 */
+.phone-col{position:relative;overflow:hidden}
+.phone{
+  position:absolute;left:0;right:0;top:8px;margin:0 auto;width:340px;height:736px;
+  border-radius:58px;background:var(--frame);padding:11px;
+  box-shadow:none;
+}
+.screen{position:relative;height:100%;border-radius:47px;background:var(--screen);overflow:hidden;display:flex;flex-direction:column;color:var(--s-ink)}
+.island{position:absolute;left:50%;top:11px;width:100px;height:29px;margin-left:-50px;border-radius:20px;background:#000;z-index:2}
+.status{height:52px;flex:none;display:flex;justify-content:space-between;align-items:flex-start;padding:16px 28px 0 34px;font:600 15px var(--sans)}
+.sys{display:flex;align-items:center;gap:6px;margin-top:2px}
+.sig{display:flex;align-items:flex-end;gap:1.5px;height:10px}
+.sig b{display:block;width:3px;background:var(--s-ink);border-radius:1px}
+.sig b:nth-child(1){height:4px}.sig b:nth-child(2){height:6px}.sig b:nth-child(3){height:8px}.sig b:nth-child(4){height:10px}
+.bat{display:block;width:24px;height:12px;border:1.2px solid var(--s-sub);border-radius:3.5px;padding:1.3px}
+.bat b{display:block;width:80%;height:100%;background:var(--s-ink);border-radius:1.5px}
+.chat-head{position:relative;flex:none;text-align:center;padding:2px 0 10px;border-bottom:.5px solid var(--s-line)}
+.back{position:absolute;left:14px;top:6px;font:300 38px/1 var(--sans);color:var(--ios-blue)}
+.avatar{width:52px;height:52px;margin:0 auto;border-radius:50%;background:linear-gradient(180deg,#A9AEB9,#868B96);color:#fff;font:600 22px/52px var(--sans);text-align:center}
+.cname{margin-top:5px;font-size:12px;color:var(--s-ink)}
+.cname em{font-style:normal;color:var(--s-sub);margin-left:2px}
+.messages{height:400px;flex:none;padding:12px 16px 0;overflow:hidden;display:flex;flex-direction:column}
+.messages.overflow{justify-content:flex-end}
+.msg-list{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;position:relative}
+.row.in{justify-content:flex-start}
+.row.out{flex-direction:row-reverse;justify-content:flex-start}
+.row + .row{margin-top:2px}
+.row.in + .row.out,.row.out + .row.in{margin-top:10px}
+.row.stamp{justify-content:center;margin:10px 0 6px!important}
+.stamp-t{font:500 11.5px var(--sans);color:var(--s-sub)}
+
+/* 말풍선 – 아이메시지 스타일 (연속 말풍선은 마지막에만 꼬리) */
+.bubble{
+  position:relative;z-index:0;max-width:74%;padding:7px 13px 8px;border-radius:19px;
+  font:400 15.5px/1.32 var(--sans);letter-spacing:-.01em;word-break:keep-all;overflow-wrap:anywhere;white-space:pre-wrap
+}
+/* 편집칸 공통 모서리(3px)보다 우선하도록 선택자를 강하게 */
+.card .row .bubble{border-radius:21px;padding:9px 15px 10px}
+.row.in .bubble{background:var(--in);color:var(--in-ink)}
+.row.out .bubble{background:var(--out);color:#fff}
+.row.in .bubble::before,.row.in .bubble::after,
+.row.out .bubble::before,.row.out .bubble::after{content:"";position:absolute;z-index:-1;bottom:0;height:20px}
+.row.in .bubble::before{left:-7px;width:20px;background:var(--in);border-bottom-right-radius:16px 14px}
+.row.in .bubble::after{left:-10px;width:10px;background:var(--screen);border-bottom-right-radius:10px}
+.row.out .bubble::before{right:-7px;width:20px;background:var(--out);border-bottom-left-radius:16px 14px}
+.row.out .bubble::after{right:-10px;width:10px;background:var(--screen);border-bottom-left-radius:10px}
+.row.in:has(+ .row.in) .bubble::before,.row.in:has(+ .row.in) .bubble::after,
+.row.out:has(+ .row.out) .bubble::before,.row.out:has(+ .row.out) .bubble::after{display:none}
+.card .bubble[contenteditable]:focus{box-shadow:0 0 0 2px rgba(255,159,10,.7)}
+.del{
+  display:none;flex:none;width:20px;height:20px;margin:0 6px;border:0;border-radius:50%;
+  background:#FF3B30;color:#fff;font:700 13px/20px var(--sans);text-align:center;padding:0;cursor:pointer
+}
+.row:hover .del,.row:focus-within .del{display:block}
+
+/* 타임라인 1:1:1 */
+.tl-col{display:flex;flex-direction:column;min-width:0;min-height:0;padding-bottom:44px}
+.tl-title{margin:0 0 22px;font-size:58px;font-weight:900;line-height:1.1;letter-spacing:-.04em;white-space:nowrap}
+.tl{position:relative;flex:1;min-height:0;display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:14px}
+.tl::before{content:"";position:absolute;left:21px;top:6px;bottom:6px;width:0;border-left:1px solid var(--ink)}
+.tl-item{display:grid;grid-template-columns:44px minmax(0,1fr);min-height:0}
+.tl-dot{position:relative;z-index:1;display:flex;align-items:center;justify-content:center}
+.tl-dot svg{display:block;width:20px;height:20px;padding:4px 0;box-sizing:content-box;background:var(--bg);overflow:visible}
+.tl-box{min-height:0;overflow:hidden;padding:16px 24px;display:flex;flex-direction:column;justify-content:center;gap:5px;background:var(--paper);border:1px solid var(--ink)}
+.tl-headrow{display:flex;align-items:baseline;gap:14px;min-width:0}
+.tl-when{flex:none;min-width:20px;font:600 11.5px var(--sans);letter-spacing:.08em;color:var(--sub);white-space:nowrap}
+.tl-name{min-width:0;white-space:nowrap;overflow:hidden;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.tl-text{font-size:13.5px;line-height:1.6;color:var(--ink2);overflow:hidden}
+</style>
+</head>
+<body>
+
+<header class="app-head">
+  <h1><small>PAIR PROFILE MAKER</small>페어 프로필 만들기</h1>
+  <p>글자를 클릭하면 바로 수정 · 사진은 더블클릭으로 넣고 휠/드래그로 조절<br>색 막대를 클릭하면 캐릭터 색 변경 · 작업 내용은 이 브라우저에 자동 저장</p>
+</header>
+
+<div class="toolbar"><div class="toolbar-in">
+  <div class="grp">
+    <button class="tb sq keep" data-cmd="bold" title="굵게"><b>B</b></button>
+    <button class="tb sq keep" data-cmd="italic" title="기울임"><i style="font-family:serif">I</i></button>
+    <button class="tb keep" data-cmd="fontName" data-val="Pretendard" title="선택한 글자를 고딕으로">고딕</button>
+    <button class="tb keep" data-cmd="fontName" data-val="Noto Serif KR" title="선택한 글자를 명조로" style="font-family:'Noto Serif KR',serif">명조</button>
+  </div>
+  <div class="grp">
+    <button class="tb" data-add="in">+ 받은 말풍선</button>
+    <button class="tb" data-add="out" style="color:#0A84FF">+ 보낸 말풍선</button>
+    <button class="tb" data-add="stamp">+ 시간</button>
+  </div>
+  <div class="grp">
+    <button class="tb" id="btnPhoto">사진 넣기</button>
+    <button class="tb" id="btnReset">초기화</button>
+    <button class="tb primary" id="btnSave">이미지로 저장</button>
+  </div>
+</div></div>
+
+<div class="stage-wrap"><div class="stage" id="stage">
+<div class="card" id="card">
+
+  <div class="top">
+    <div class="photo">
+      <div class="ph-empty" data-html2canvas-ignore>
+        <div class="ph-ico">+</div>
+        <b>더블클릭해서 사진 넣기</b>
+        <span>휠: 크기 조절 · 드래그: 위치 이동</span>
+      </div>
+      <button class="ph-del" data-html2canvas-ignore>사진 삭제</button>
+    </div>
+
+    <div class="right">
+      <div class="title-box">
+        <h2 class="pair-title" contenteditable="true" spellcheck="false" data-single data-ph="타이틀 제목">타이틀 제목</h2>
+      </div>
+
+      <div class="chars">
+        <div class="char">
+          <div class="chip" data-c="#121212" style="background:#121212" title="클릭해서 캐릭터 색상 고르기"></div>
+          <div class="char-body">
+            <div class="char-head">
+              <span class="name" contenteditable="true" spellcheck="false" data-single data-ph="캐릭터 A">캐릭터 A</span>
+              <span class="meta" contenteditable="true" spellcheck="false" data-single data-ph="자유 입력">자유 입력</span>
+            </div>
+            <div class="desc" contenteditable="true" spellcheck="false" data-ph="캐릭터 A 설명">캐릭터 A 설명</div>
+          </div>
+        </div>
+        <div class="char">
+          <div class="chip" data-c="#0A84FF" style="background:#0A84FF" title="클릭해서 캐릭터 색상 고르기"></div>
+          <div class="char-body">
+            <div class="char-head">
+              <span class="name" contenteditable="true" spellcheck="false" data-single data-ph="캐릭터 B">캐릭터 B</span>
+              <span class="meta" contenteditable="true" spellcheck="false" data-single data-ph="자유 입력">자유 입력</span>
+            </div>
+            <div class="desc" contenteditable="true" spellcheck="false" data-ph="캐릭터 B 설명">캐릭터 B 설명</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="phone-col">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="status">
+          <span contenteditable="true" spellcheck="false" data-single>9:41</span>
+          <span class="sys"><i class="sig"><b></b><b></b><b></b><b></b></i><i class="bat"><b></b></i></span>
+        </div>
+        <div class="chat-head">
+          <span class="back">‹</span>
+          <div class="avatar" contenteditable="true" spellcheck="false" data-single></div>
+          <div class="cname"><span contenteditable="true" spellcheck="false" data-single data-ph="이름">이름</span><em>›</em></div>
+        </div>
+        <div class="messages"><div class="msg-list">
+          <div class="row stamp"><span class="stamp-t" contenteditable="true" spellcheck="false" data-ph="시간">시간 입력</span><button class="del" data-html2canvas-ignore title="삭제">×</button></div>
+          <div class="row in"><div class="bubble" contenteditable="true" spellcheck="false" data-ph="메시지 입력">받은 메시지</div><button class="del" data-html2canvas-ignore title="삭제">×</button></div>
+          <div class="row in"><div class="bubble" contenteditable="true" spellcheck="false" data-ph="메시지 입력">받은 메시지</div><button class="del" data-html2canvas-ignore title="삭제">×</button></div>
+          <div class="row out"><div class="bubble" contenteditable="true" spellcheck="false" data-ph="메시지 입력">보낸 메시지</div><button class="del" data-html2canvas-ignore title="삭제">×</button></div>
+          <div class="row in"><div class="bubble" contenteditable="true" spellcheck="false" data-ph="메시지 입력">받은 메시지</div><button class="del" data-html2canvas-ignore title="삭제">×</button></div>
+          <div class="row out"><div class="bubble" contenteditable="true" spellcheck="false" data-ph="메시지 입력">보낸 메시지</div><button class="del" data-html2canvas-ignore title="삭제">×</button></div>
+        </div></div>
+      </div></div>
+    </div>
+
+    <div class="tl-col">
+      <h2 class="tl-title" contenteditable="true" spellcheck="false" data-single>TIMELINE</h2>
+      <div class="tl">
+        <div class="tl-item"><div class="tl-dot"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.2 L18.8 10 L10 18.8 L1.2 10 Z" fill="#FFFFFF" stroke="#121212" stroke-width="1.5" stroke-linejoin="miter"/><path d="M10 5.6 L14.4 10 L10 14.4 L5.6 10 Z" fill="#121212"/></svg></div>
+          <div class="tl-box">
+            <div class="tl-headrow">
+              <div class="tl-name" contenteditable="true" spellcheck="false" data-single data-ph="제목 입력">제목 입력</div>
+              <div class="tl-when" contenteditable="true" spellcheck="false" data-single data-ph="날짜 입력">날짜 입력</div>
+            </div>
+            <div class="tl-text" contenteditable="true" spellcheck="false" data-ph="자유 입력">자유 입력</div>
+          </div>
+        </div>
+        <div class="tl-item"><div class="tl-dot"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.2 L18.8 10 L10 18.8 L1.2 10 Z" fill="#FFFFFF" stroke="#121212" stroke-width="1.5" stroke-linejoin="miter"/><path d="M10 5.6 L14.4 10 L10 14.4 L5.6 10 Z" fill="#121212"/></svg></div>
+          <div class="tl-box">
+            <div class="tl-headrow">
+              <div class="tl-name" contenteditable="true" spellcheck="false" data-single data-ph="제목 입력">제목 입력</div>
+              <div class="tl-when" contenteditable="true" spellcheck="false" data-single data-ph="날짜 입력">날짜 입력</div>
+            </div>
+            <div class="tl-text" contenteditable="true" spellcheck="false" data-ph="자유 입력">자유 입력</div>
+          </div>
+        </div>
+        <div class="tl-item"><div class="tl-dot"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.2 L18.8 10 L10 18.8 L1.2 10 Z" fill="#FFFFFF" stroke="#121212" stroke-width="1.5" stroke-linejoin="miter"/><path d="M10 5.6 L14.4 10 L10 14.4 L5.6 10 Z" fill="#121212"/></svg></div>
+          <div class="tl-box">
+            <div class="tl-headrow">
+              <div class="tl-name" contenteditable="true" spellcheck="false" data-single data-ph="제목 입력">제목 입력</div>
+              <div class="tl-when" contenteditable="true" spellcheck="false" data-single data-ph="날짜 입력">날짜 입력</div>
+            </div>
+            <div class="tl-text" contenteditable="true" spellcheck="false" data-ph="자유 입력">자유 입력</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div></div>
+
+<input type="file" id="file" accept="image/*" class="hidden-input">
+<input type="color" id="color" class="hidden-input">
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const W = 1120;
+  const KEY = 'pair-profile-maker-v5';
+  const card = document.getElementById('card');
+  const stage = document.getElementById('stage');
+  const fileIn = document.getElementById('file');
+  const colorIn = document.getElementById('color');
+  let S = 1;
+
+  const toastEl = document.getElementById('toast'); let tt;
+  function toast(msg){ toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(tt); tt = setTimeout(()=>toastEl.classList.remove('show'), 2000); }
+
+  /* 화면 크기에 맞게 축소 */
+  function fit(){
+    const avail = Math.min(document.documentElement.clientWidth - 32, W);
+    S = Math.max(0.2, avail / W);
+    card.style.transform = 'scale(' + S + ')';
+    stage.style.width = (W * S) + 'px';
+    stage.style.height = (card.offsetHeight * S) + 'px';
+  }
+  window.addEventListener('resize', fit);
+
+  /* 자동 저장 */
+  let st;
+  function persist(){
+    clearTimeout(st);
+    st = setTimeout(()=>{
+      try { localStorage.setItem(KEY, card.innerHTML); }
+      catch(e){ toast('저장 공간이 부족해서 자동 저장을 못 했어요'); }
+    }, 400);
+  }
+  function restore(){
+    try { const h = localStorage.getItem(KEY); if (h) card.innerHTML = h; } catch(e){}
+  }
+
+  /* 메시지가 넘치면 최신 메시지가 보이게 */
+  function fitMsgs(){
+    const box = card.querySelector('.messages'); const list = card.querySelector('.msg-list');
+    if (!box || !list) return;
+    box.classList.remove('overflow');
+    if (list.scrollHeight > box.clientHeight) box.classList.add('overflow');
+  }
+
+  /* 사진 */
+  const frame = () => card.querySelector('.photo');
+  function openPicker(){ fileIn.value = ''; fileIn.click(); }
+  document.getElementById('btnPhoto').addEventListener('click', openPicker);
+  fileIn.addEventListener('change', e=>{
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const im = new Image();
+      im.onload = () => {
+        const max = 1600, k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        setPhoto(c.toDataURL('image/jpeg', 0.9), c.width, c.height);
+      };
+      im.src = r.result;
+    };
+    r.readAsDataURL(f);
+  });
+  function place(img, x, y, w){
+    const h = w * parseFloat(img.dataset.r);
+    img.dataset.x = x; img.dataset.y = y; img.dataset.w = w;
+    img.style.left = x + 'px'; img.style.top = y + 'px'; img.style.width = w + 'px'; img.style.height = h + 'px';
+  }
+  function setPhoto(src, nw, nh){
+    const fr = frame(); let img = fr.querySelector('.ph-img');
+    if (!img){ img = document.createElement('img'); img.className = 'ph-img'; img.alt = ''; img.draggable = false; fr.prepend(img); }
+    img.src = src; img.dataset.r = nh / nw;
+    const FW = fr.clientWidth, FH = fr.clientHeight;
+    let w = FW, h = w * nh / nw;
+    if (h < FH){ h = FH; w = h * nw / nh; }
+    place(img, (FW - w) / 2, (FH - h) / 2, w);
+    fr.classList.add('has'); persist();
+  }
+
+  let drag = null;
+  card.addEventListener('pointerdown', e=>{
+    const img = e.target.closest('.ph-img'); if (!img) return;
+    e.preventDefault();
+    drag = { img, sx: e.clientX, sy: e.clientY, x: +img.dataset.x, y: +img.dataset.y };
+    try { img.setPointerCapture(e.pointerId); } catch(_){}
+    img.classList.add('grab');
+  });
+  window.addEventListener('pointermove', e=>{
+    if (!drag) return;
+    place(drag.img, drag.x + (e.clientX - drag.sx) / S, drag.y + (e.clientY - drag.sy) / S, +drag.img.dataset.w);
+  });
+  window.addEventListener('pointerup', ()=>{ if (drag){ drag.img.classList.remove('grab'); drag = null; persist(); } });
+
+  card.addEventListener('wheel', e=>{
+    const fr = e.target.closest('.photo'); if (!fr) return;
+    const img = fr.querySelector('.ph-img'); if (!img) return;
+    e.preventDefault();
+    const rc = fr.getBoundingClientRect();
+    const cx = (e.clientX - rc.left) / S, cy = (e.clientY - rc.top) / S;
+    const w = +img.dataset.w;
+    const nw = Math.max(80, Math.min(w * Math.exp(-e.deltaY * 0.0015), 8000));
+    const k = nw / w;
+    place(img, cx - (cx - img.dataset.x) * k, cy - (cy - img.dataset.y) * k, nw);
+    persist();
+  }, { passive:false });
+
+  card.addEventListener('dblclick', e=>{
+    if (e.target.closest('.photo') && !e.target.closest('.ph-del')) openPicker();
+  });
+
+  /* 클릭: 사진 삭제 / 색 막대 / 말풍선 삭제 */
+  let curChip = null;
+  card.addEventListener('click', e=>{
+    if (e.target.closest('.ph-del')){
+      const fr = frame(); const img = fr.querySelector('.ph-img');
+      if (img) img.remove(); fr.classList.remove('has'); persist(); return;
+    }
+    if (e.target.closest('.ph-empty')){ openPicker(); return; }
+    const chip = e.target.closest('.chip');
+    if (chip){ curChip = chip; colorIn.value = (chip.dataset.c || '#121212').toLowerCase(); colorIn.click(); return; }
+    const del = e.target.closest('.del');
+    if (del){ del.closest('.row').remove(); fitMsgs(); persist(); }
+  });
+  colorIn.addEventListener('input', ()=>{
+    if (!curChip) return;
+    curChip.dataset.c = colorIn.value; curChip.style.background = colorIn.value;
+    persist();
+  });
+
+  /* 말풍선 추가 */
+  function selectAll(el){ const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+  document.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', ()=>{
+    const kind = b.dataset.add;
+    const list = card.querySelector('.msg-list');
+    const row = document.createElement('div');
+    row.className = 'row ' + kind;
+    row.innerHTML = kind === 'stamp'
+      ? '<span class="stamp-t" contenteditable="true" spellcheck="false" data-ph="시간">시간 입력</span>'
+      : '<div class="bubble" contenteditable="true" spellcheck="false" data-ph="메시지 입력">' + (kind === 'in' ? '받은 메시지' : '보낸 메시지') + '</div>';
+    row.insertAdjacentHTML('beforeend', '<button class="del" data-html2canvas-ignore title="삭제">×</button>');
+    list.appendChild(row);
+    const ed = row.querySelector('[contenteditable]');
+    ed.focus({ preventScroll:true }); selectAll(ed);
+    fitMsgs(); persist();
+  }));
+
+  /* 텍스트 편집 */
+  card.addEventListener('keydown', e=>{
+    if (e.key === 'Enter' && e.target.closest('[data-single]')) e.preventDefault();
+  });
+  card.addEventListener('paste', e=>{
+    if (!e.target.closest('[contenteditable]')) return;
+    e.preventDefault();
+    const t = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, t);
+  });
+  card.addEventListener('input', ()=>{ fitMsgs(); persist(); });
+
+  /* 굵게 / 기울임 / 글꼴 */
+  let savedRange = null;
+  document.addEventListener('selectionchange', ()=>{
+    const s = getSelection();
+    if (s.rangeCount && card.contains(s.anchorNode)) savedRange = s.getRangeAt(0).cloneRange();
+  });
+  document.querySelectorAll('.keep').forEach(b => {
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('click', ()=>{
+      if (!savedRange || savedRange.collapsed){ toast('먼저 글자를 드래그해서 선택해 주세요'); return; }
+      const node = savedRange.startContainer.nodeType === 3 ? savedRange.startContainer.parentElement : savedRange.startContainer;
+      const ed = node && node.closest('[contenteditable]');
+      if (!ed) return;
+      ed.focus({ preventScroll:true });
+      const s = getSelection(); s.removeAllRanges(); s.addRange(savedRange);
+      document.execCommand('styleWithCSS', false, false);
+      document.execCommand(b.dataset.cmd, false, b.dataset.val || null);
+      persist();
+    });
+  });
+
+  /* 초기화 */
+  document.getElementById('btnReset').addEventListener('click', ()=>{
+    if (!confirm('지금까지 작업한 내용을 모두 지우고 처음 상태로 돌릴까요?')) return;
+    try { localStorage.removeItem(KEY); } catch(e){}
+    location.reload();
+  });
+
+  /* PNG 저장 */
+  const btnSave = document.getElementById('btnSave');
+  btnSave.addEventListener('click', async ()=>{
+    if (typeof html2canvas === 'undefined'){ toast('저장 모듈을 불러오지 못했어요. 새로고침해 주세요'); return; }
+    btnSave.disabled = true; const label = btnSave.textContent; btnSave.textContent = '저장 중…';
+    getSelection().removeAllRanges();
+    if (document.activeElement) document.activeElement.blur();
+    card.classList.add('exporting');
+    card.style.transform = 'none';
+    try {
+      await document.fonts.ready;
+      const canvas = await html2canvas(card, {
+        scale: 2, useCORS: true,
+        backgroundColor: getComputedStyle(card).backgroundColor,
+        width: card.offsetWidth, height: card.offsetHeight,
+        windowWidth: Math.max(document.documentElement.clientWidth, W + 64),
+        scrollX: 0, scrollY: -window.scrollY
+      });
+      await new Promise(res => canvas.toBlob(b => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(b);
+        a.download = Math.random().toString(36).slice(2, 8) + '.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(a.href), 3000); res();
+      }, 'image/png'));
+      toast('이미지를 저장했어요');
+    } catch(err){
+      console.error(err); toast('저장 중 문제가 생겼어요');
+    } finally {
+      card.classList.remove('exporting');
+      fit();
+      btnSave.disabled = false; btnSave.textContent = label;
+    }
+  });
+
+  restore();
+  fit();
+  fitMsgs();
+  if (document.fonts) document.fonts.ready.then(()=>{ fit(); fitMsgs(); });
+})();
+</script>
+</body>
+</html>
