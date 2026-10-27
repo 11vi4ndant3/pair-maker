@@ -42,6 +42,7 @@ body{
 .tb.primary{background:#121212;color:#fff}
 .tb.primary:hover{background:#333}
 .tb:disabled{opacity:.6;cursor:wait}
+.tb.on{background:#121212;color:#fff}
 
 .stage-wrap{display:flex;justify-content:center;padding:0 16px 60px}
 .stage{position:relative}
@@ -131,7 +132,16 @@ body{
 .bat b{display:block;width:80%;height:100%;background:var(--s-ink);border-radius:1.5px}
 .chat-head{position:relative;flex:none;text-align:center;padding:2px 0 10px;border-bottom:.5px solid var(--s-line)}
 .back{position:absolute;left:14px;top:6px;font:300 38px/1 var(--sans);color:var(--ios-blue)}
-.avatar{width:52px;height:52px;margin:0 auto;border-radius:50%;background:linear-gradient(180deg,#A9AEB9,#868B96);color:#fff;font:600 22px/52px var(--sans);text-align:center}
+.avatar{width:52px;height:52px;margin:0 auto;border-radius:50%;background:linear-gradient(180deg,#A9AEB9,#868B96);background-size:cover;background-position:center;color:#fff;font:600 22px/52px var(--sans);text-align:center;overflow:hidden}
+.av-text{display:block;width:100%;height:100%;border-radius:50%}
+.avatar.has-img .av-text{display:none}
+.avatar.has-img{cursor:pointer}
+
+/* 출처 표기 (카드 왼쪽 위) */
+.credit{position:absolute;left:44px;top:15px;display:none;align-items:baseline;gap:5px;font:500 11px var(--sans);color:#9A978F;letter-spacing:.02em;white-space:nowrap}
+.credit.on{display:flex}
+.credit .c-mark{font-weight:600}
+.credit [contenteditable]{min-width:40px}
 .cname{margin-top:5px;font-size:12px;color:var(--s-ink)}
 .cname em{font-style:normal;color:var(--s-sub);margin-left:2px}
 .messages{height:360px;flex:none;padding:12px 16px 0;overflow:hidden;display:flex;flex-direction:column}
@@ -205,6 +215,8 @@ body{
   </div>
   <div class="grp">
     <button class="tb" id="btnPhoto">사진 넣기</button>
+    <button class="tb" id="btnCredit">출처 표기</button>
+    <button class="tb" id="btnAvatar">프로필 사진</button>
     <button class="tb" id="btnReset">초기화</button>
     <button class="tb primary" id="btnSave">이미지로 저장</button>
   </div>
@@ -212,6 +224,8 @@ body{
 
 <div class="stage-wrap"><div class="stage" id="stage">
 <div class="card" id="card">
+
+  <div class="credit"><span class="c-mark">©</span><span contenteditable="true" spellcheck="false" data-single data-ph="출처 입력">출처 입력</span></div>
 
   <div class="top">
     <div class="photo">
@@ -263,7 +277,7 @@ body{
         </div>
         <div class="chat-head">
           <span class="back">‹</span>
-          <div class="avatar" contenteditable="true" spellcheck="false" data-single></div>
+          <div class="avatar"><span class="av-text" contenteditable="true" spellcheck="false" data-single></span></div>
           <div class="cname"><span contenteditable="true" spellcheck="false" data-single data-ph="이름">이름</span><em>›</em></div>
         </div>
         <div class="messages"><div class="msg-list">
@@ -321,7 +335,7 @@ body{
 <script>
 (function(){
   const W = 1200;
-  const KEY = 'pair-profile-maker-v5';
+  const KEY = 'pair-profile-maker-v6';
   const card = document.getElementById('card');
   const stage = document.getElementById('stage');
   const fileIn = document.getElementById('file');
@@ -364,19 +378,22 @@ body{
 
   /* 사진 */
   const frame = () => card.querySelector('.photo');
-  function openPicker(){ fileIn.value = ''; fileIn.click(); }
-  document.getElementById('btnPhoto').addEventListener('click', openPicker);
+  let pickTarget = 'main';
+  function openPicker(target){ pickTarget = target === 'avatar' ? 'avatar' : 'main'; fileIn.value = ''; fileIn.click(); }
+  document.getElementById('btnPhoto').addEventListener('click', ()=>openPicker('main'));
   fileIn.addEventListener('change', e=>{
     const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();
     r.onload = () => {
       const im = new Image();
       im.onload = () => {
-        const max = 1600, k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
+        const isAv = pickTarget === 'avatar';
+        const max = isAv ? 320 : 1600, k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
         const c = document.createElement('canvas');
         c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
         c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-        setPhoto(c.toDataURL('image/jpeg', 0.9), c.width, c.height);
+        if (isAv) setAvatar(c.toDataURL('image/jpeg', 0.9));
+        else setPhoto(c.toDataURL('image/jpeg', 0.9), c.width, c.height);
       };
       im.src = r.result;
     };
@@ -397,6 +414,39 @@ body{
     place(img, (FW - w) / 2, (FH - h) / 2, w);
     fr.classList.add('has'); persist();
   }
+
+  /* 프로필 사진: 없으면 텍스트, 넣으면 이미지 */
+  const btnAvatar = document.getElementById('btnAvatar');
+  const btnCredit = document.getElementById('btnCredit');
+  function syncButtons(){
+    const av = card.querySelector('.avatar');
+    const has = av && av.classList.contains('has-img');
+    btnAvatar.textContent = has ? '프로필 사진 삭제' : '프로필 사진';
+    const cr = card.querySelector('.credit');
+    btnCredit.classList.toggle('on', !!(cr && cr.classList.contains('on')));
+  }
+  function setAvatar(src){
+    const av = card.querySelector('.avatar');
+    av.style.backgroundImage = 'url(' + src + ')';
+    av.classList.add('has-img');
+    syncButtons(); persist();
+  }
+  btnAvatar.addEventListener('click', ()=>{
+    const av = card.querySelector('.avatar');
+    if (av.classList.contains('has-img')){
+      av.classList.remove('has-img'); av.style.backgroundImage = '';
+      syncButtons(); persist();
+    } else openPicker('avatar');
+  });
+  btnCredit.addEventListener('click', ()=>{
+    const cr = card.querySelector('.credit');
+    cr.classList.toggle('on');
+    if (cr.classList.contains('on')){
+      const ed = cr.querySelector('[contenteditable]');
+      ed.focus({ preventScroll:true }); selectAll(ed);
+    }
+    syncButtons(); persist();
+  });
 
   let drag = null;
   card.addEventListener('pointerdown', e=>{
@@ -426,7 +476,8 @@ body{
   }, { passive:false });
 
   card.addEventListener('dblclick', e=>{
-    if (e.target.closest('.photo') && !e.target.closest('.ph-del')) openPicker();
+    if (e.target.closest('.photo') && !e.target.closest('.ph-del')) openPicker('main');
+    if (e.target.closest('.avatar.has-img')) openPicker('avatar');
   });
 
   /* 클릭: 사진 삭제 / 색 막대 / 말풍선 삭제 */
@@ -436,7 +487,7 @@ body{
       const fr = frame(); const img = fr.querySelector('.ph-img');
       if (img) img.remove(); fr.classList.remove('has'); persist(); return;
     }
-    if (e.target.closest('.ph-empty')){ openPicker(); return; }
+    if (e.target.closest('.ph-empty')){ openPicker('main'); return; }
     const chip = e.target.closest('.chip');
     if (chip){ curChip = chip; colorIn.value = (chip.dataset.c || '#121212').toLowerCase(); colorIn.click(); return; }
     const del = e.target.closest('.del');
@@ -541,6 +592,7 @@ body{
   });
 
   restore();
+  syncButtons();
   fit();
   fitMsgs();
   if (document.fonts) document.fonts.ready.then(()=>{ fit(); fitMsgs(); });
