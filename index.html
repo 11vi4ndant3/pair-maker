@@ -516,7 +516,16 @@ body{
     }
     if (e.target.closest('.ph-empty')){ openPicker('main'); return; }
     const chip = e.target.closest('.chip');
-    if (chip){ curChip = chip; colorIn.value = (chip.dataset.c || '#121212').toLowerCase(); colorIn.click(); return; }
+    if (chip){
+      curChip = chip;
+      colorIn.value = (chip.dataset.c || '#121212').toLowerCase();
+      // 색상 창이 화면 밖에서 열리지 않도록, 숨은 입력칸을 색 막대 바로 옆으로 옮긴 뒤 열기
+      const rc = chip.getBoundingClientRect();
+      colorIn.style.left = Math.round(rc.right + 4) + 'px';
+      colorIn.style.top = Math.round(rc.top) + 'px';
+      colorIn.click();
+      return;
+    }
     const del = e.target.closest('.del');
     if (del){ del.closest('.row').remove(); fitMsgs(); persist(); }
   });
