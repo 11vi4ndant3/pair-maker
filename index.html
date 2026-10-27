@@ -164,14 +164,13 @@ body{
 .card .row .bubble{border-radius:21px;padding:9px 15px 10px}
 .row.in .bubble{background:var(--in);color:var(--in-ink)}
 .row.out .bubble{background:var(--out);color:#fff}
-.row.in .bubble::before,.row.in .bubble::after,
-.row.out .bubble::before,.row.out .bubble::after{content:"";position:absolute;z-index:-1;bottom:0;height:20px}
-.row.in .bubble::before{left:-7px;width:20px;background:var(--in);border-bottom-right-radius:16px 14px}
-.row.in .bubble::after{left:-10px;width:10px;background:var(--screen);border-bottom-right-radius:10px}
-.row.out .bubble::before{right:-7px;width:20px;background:var(--out);border-bottom-left-radius:16px 14px}
-.row.out .bubble::after{right:-10px;width:10px;background:var(--screen);border-bottom-left-radius:10px}
-.row.in:has(+ .row.in) .bubble::before,.row.in:has(+ .row.in) .bubble::after,
-.row.out:has(+ .row.out) .bubble::before,.row.out:has(+ .row.out) .bubble::after{display:none}
+/* 꼬리: 저장 이미지에서도 똑같이 나오도록 실제 SVG로 그림. 연속 말풍선은 마지막에만 */
+.row .tail{position:absolute;bottom:0;width:20px;height:20px;display:none;pointer-events:none}
+.row.in .tail{left:-7px}
+.row.out .tail{right:-7px}
+.row.tail-on .tail{display:block}
+.card .row.in.tail-on .bubble{border-bottom-left-radius:8px}
+.card .row.out.tail-on .bubble{border-bottom-right-radius:8px}
 .card .bubble[contenteditable]:focus{box-shadow:0 0 0 2px rgba(255,159,10,.7)}
 .del{
   display:none;flex:none;width:20px;height:20px;margin:0 6px;border:0;border-radius:50%;
@@ -377,7 +376,20 @@ body{
   }
 
   /* 메시지가 넘치면 최신 메시지가 보이게 */
+  /* 말풍선 꼬리: 같은 쪽 연속 말풍선 중 마지막에만 */
+  const TAIL_IN = '<svg class="tail" viewBox="0 0 20 20" aria-hidden="true"><path d="M0 20C5 19.5 7 16 7 10V0H20V20Z" fill="#E9E9EB"/></svg>';
+  const TAIL_OUT = '<svg class="tail" viewBox="0 0 20 20" aria-hidden="true"><path d="M20 20C15 19.5 13 16 13 10V0H0V20Z" fill="#0A84FF"/></svg>';
+  function markTails(){
+    card.querySelectorAll('.msg-list > .row').forEach(row=>{
+      const kind = row.classList.contains('in') ? 'in' : row.classList.contains('out') ? 'out' : null;
+      if (!kind){ row.classList.remove('tail-on'); return; }
+      if (!row.querySelector('.tail')) row.insertAdjacentHTML('beforeend', kind === 'in' ? TAIL_IN : TAIL_OUT);
+      const next = row.nextElementSibling;
+      row.classList.toggle('tail-on', !(next && next.classList.contains(kind)));
+    });
+  }
   function fitMsgs(){
+    markTails();
     const box = card.querySelector('.messages'); const list = card.querySelector('.msg-list');
     if (!box || !list) return;
     box.classList.remove('overflow');
