@@ -185,7 +185,7 @@ body{
 .tl::before{content:"";position:absolute;left:21px;top:6px;bottom:6px;width:0;border-left:1px solid var(--ink)}
 .tl-item{display:grid;grid-template-columns:44px minmax(0,1fr);min-height:0}
 .tl-dot{position:relative;z-index:1;display:flex;align-items:center;justify-content:center}
-.tl-dot svg{display:block;width:20px;height:20px;padding:4px 0;box-sizing:content-box;background:var(--bg);overflow:visible}
+.tl-dot img{display:block;width:20px;height:28px}
 .tl-box{min-height:0;overflow:hidden;padding:16px 24px;display:flex;flex-direction:column;justify-content:center;gap:5px;background:var(--paper);border:1px solid var(--ink)}
 .tl-headrow{display:flex;align-items:baseline;gap:14px;min-width:0}
 .tl-when{flex:none;min-width:20px;font:600 11.5px var(--sans);letter-spacing:.08em;color:var(--sub);white-space:nowrap}
@@ -215,9 +215,8 @@ body{
     <button class="tb" data-add="stamp">+ 시간</button>
   </div>
   <div class="grp">
-    <button class="tb" id="btnPhoto">사진 넣기</button>
     <button class="tb" id="btnCredit">출처 표기</button>
-    <button class="tb" id="btnAvatar">프로필 사진</button>
+    <button class="tb" id="btnAvatar">휴대폰 프로필</button>
     <button class="tb" id="btnReset">초기화</button>
     <button class="tb primary" id="btnSave">이미지로 저장</button>
   </div>
@@ -295,7 +294,7 @@ body{
     <div class="tl-col">
       <h2 class="tl-title" contenteditable="true" spellcheck="false" data-single>TIMELINE</h2>
       <div class="tl">
-        <div class="tl-item"><div class="tl-dot"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.2 L18.8 10 L10 18.8 L1.2 10 Z" fill="#FFFFFF" stroke="#121212" stroke-width="1.5" stroke-linejoin="miter"/><path d="M10 5.6 L14.4 10 L10 14.4 L5.6 10 Z" fill="#121212"/></svg></div>
+        <div class="tl-item"><div class="tl-dot"></div>
           <div class="tl-box">
             <div class="tl-headrow">
               <div class="tl-name" contenteditable="true" spellcheck="false" data-single data-ph="제목 입력">제목 입력</div>
@@ -304,7 +303,7 @@ body{
             <div class="tl-text" contenteditable="true" spellcheck="false" data-ph="자유 입력">자유 입력</div>
           </div>
         </div>
-        <div class="tl-item"><div class="tl-dot"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.2 L18.8 10 L10 18.8 L1.2 10 Z" fill="#FFFFFF" stroke="#121212" stroke-width="1.5" stroke-linejoin="miter"/><path d="M10 5.6 L14.4 10 L10 14.4 L5.6 10 Z" fill="#121212"/></svg></div>
+        <div class="tl-item"><div class="tl-dot"></div>
           <div class="tl-box">
             <div class="tl-headrow">
               <div class="tl-name" contenteditable="true" spellcheck="false" data-single data-ph="제목 입력">제목 입력</div>
@@ -313,7 +312,7 @@ body{
             <div class="tl-text" contenteditable="true" spellcheck="false" data-ph="자유 입력">자유 입력</div>
           </div>
         </div>
-        <div class="tl-item"><div class="tl-dot"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.2 L18.8 10 L10 18.8 L1.2 10 Z" fill="#FFFFFF" stroke="#121212" stroke-width="1.5" stroke-linejoin="miter"/><path d="M10 5.6 L14.4 10 L10 14.4 L5.6 10 Z" fill="#121212"/></svg></div>
+        <div class="tl-item"><div class="tl-dot"></div>
           <div class="tl-box">
             <div class="tl-headrow">
               <div class="tl-name" contenteditable="true" spellcheck="false" data-single data-ph="제목 입력">제목 입력</div>
@@ -377,13 +376,22 @@ body{
 
   /* 메시지가 넘치면 최신 메시지가 보이게 */
   /* 말풍선 꼬리: 같은 쪽 연속 말풍선 중 마지막에만 */
-  const TAIL_IN = '<svg class="tail" viewBox="0 0 20 20" aria-hidden="true"><path d="M0 20C5 19.5 7 16 7 10V0H20V20Z" fill="#E9E9EB"/></svg>';
-  const TAIL_OUT = '<svg class="tail" viewBox="0 0 20 20" aria-hidden="true"><path d="M20 20C15 19.5 13 16 13 10V0H0V20Z" fill="#0A84FF"/></svg>';
+  // 저장 라이브러리가 정확히 그리도록 크기가 고정된 이미지(data URI)로 사용
+  const svgURI = x => 'data:image/svg+xml,' + encodeURIComponent(x);
+  const TAIL_IN_SRC = svgURI('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M0 20C5 19.5 7 16 7 10V0H20V20Z" fill="#E9E9EB"/></svg>');
+  const TAIL_OUT_SRC = svgURI('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M20 20C15 19.5 13 16 13 10V0H0V20Z" fill="#0A84FF"/></svg>');
+  const DIAMOND_SRC = svgURI('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="28" viewBox="0 0 20 28"><rect width="20" height="28" fill="#FFFFFF"/><path d="M10 5.2L18.8 14L10 22.8L1.2 14Z" fill="#FFFFFF" stroke="#121212" stroke-width="1.5"/><path d="M10 9.6L14.4 14L10 18.4L5.6 14Z" fill="#121212"/></svg>');
+  function normalizeDots(){
+    card.querySelectorAll('.tl-dot').forEach(d=>{
+      if (!d.querySelector('img')) d.innerHTML = '<img alt="" width="20" height="28" src="' + DIAMOND_SRC + '">';
+    });
+  }
   function markTails(){
     card.querySelectorAll('.msg-list > .row').forEach(row=>{
       const kind = row.classList.contains('in') ? 'in' : row.classList.contains('out') ? 'out' : null;
       if (!kind){ row.classList.remove('tail-on'); return; }
-      if (!row.querySelector('.tail')) row.insertAdjacentHTML('beforeend', kind === 'in' ? TAIL_IN : TAIL_OUT);
+      row.querySelectorAll('svg.tail').forEach(t => t.remove());
+      if (!row.querySelector('img.tail')) row.insertAdjacentHTML('beforeend', '<img class="tail" alt="" width="20" height="20" src="' + (kind === 'in' ? TAIL_IN_SRC : TAIL_OUT_SRC) + '">');
       const next = row.nextElementSibling;
       row.classList.toggle('tail-on', !(next && next.classList.contains(kind)));
     });
@@ -400,7 +408,6 @@ body{
   const frame = () => card.querySelector('.photo');
   let pickTarget = 'main';
   function openPicker(target){ pickTarget = target === 'avatar' ? 'avatar' : 'main'; fileIn.value = ''; fileIn.click(); }
-  document.getElementById('btnPhoto').addEventListener('click', ()=>openPicker('main'));
   fileIn.addEventListener('change', e=>{
     const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();
@@ -441,7 +448,7 @@ body{
   function syncButtons(){
     const av = card.querySelector('.avatar');
     const has = av && av.classList.contains('has-img');
-    btnAvatar.textContent = has ? '프로필 사진 삭제' : '프로필 사진';
+    btnAvatar.textContent = has ? '휴대폰 프로필 삭제' : '휴대폰 프로필';
     const cr = card.querySelector('.credit');
     btnCredit.classList.toggle('on', !!(cr && cr.classList.contains('on')));
   }
@@ -612,6 +619,7 @@ body{
   });
 
   restore();
+  normalizeDots();
   syncButtons();
   fit();
   fitMsgs();
