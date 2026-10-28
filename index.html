@@ -144,9 +144,9 @@ body{
 .credit [contenteditable]{min-width:40px}
 .cname{margin-top:5px;font-size:12px;color:var(--s-ink)}
 .cname em{font-style:normal;color:var(--s-sub);margin-left:2px}
-.messages{height:360px;flex:none;padding:12px 16px 0;overflow:hidden;display:flex;flex-direction:column}
+.messages{height:360px;flex:none;padding:12px 16px 8px;overflow:hidden;display:flex;flex-direction:column}
 .messages.overflow{justify-content:flex-end}
-.msg-list{display:flex;flex-direction:column}
+.msg-list{flex:none;display:flex;flex-direction:column}
 .row{display:flex;align-items:center;position:relative}
 .row.in{justify-content:flex-start}
 .row.out{flex-direction:row-reverse;justify-content:flex-start}
@@ -401,7 +401,9 @@ body{
     const box = card.querySelector('.messages'); const list = card.querySelector('.msg-list');
     if (!box || !list) return;
     box.classList.remove('overflow');
-    if (list.scrollHeight > box.clientHeight) box.classList.add('overflow');
+    const cs = getComputedStyle(box);
+    const inner = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (list.offsetHeight > inner) box.classList.add('overflow');
   }
 
   /* 사진 */
